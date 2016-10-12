@@ -209,6 +209,8 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [self showProgress:SVProgressHUDUndefinedProgress status:status];
 }
 
+
+
 + (void)showWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
     SVProgressHUDMaskType existingMaskType = [self sharedView].defaultMaskType;
     [self setDefaultMaskType:maskType];
@@ -256,6 +258,10 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [self showImage:[self sharedView].successImage status:status];
 }
 
++ (void)showSuccessWithStatus:(NSString *)string duration:(float)duration {
+    [[self sharedView] showImage:[self sharedView].successImage status:string duration:duration];
+}
+
 + (void)showSuccessWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
     SVProgressHUDMaskType existingMaskType = [self sharedView].defaultMaskType;
     [self setDefaultMaskType:maskType];
@@ -265,6 +271,10 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 
 + (void)showErrorWithStatus:(NSString*)status {
     [self showImage:[self sharedView].errorImage status:status];
+}
+
++ (void)showErrorWithStatus:(NSString *)string duration:(float)duration {
+  [[self sharedView] showImage:[self sharedView].errorImage status:string duration:duration];
 }
 
 + (void)showErrorWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {

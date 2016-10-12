@@ -113,8 +113,10 @@ typedef void (^SVProgressHUDDismissCompletion)(void);
 + (void)showInfoWithStatus:(NSString*)status;
 + (void)showInfoWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType __attribute__((deprecated("Use showInfoWithStatus: and setDefaultMaskType: instead.")));
 + (void)showSuccessWithStatus:(NSString*)status;
++ (void)showSuccessWithStatus:(NSString *)string duration:(float)duration;
 + (void)showSuccessWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType __attribute__((deprecated("Use showSuccessWithStatus: and setDefaultMaskType: instead.")));
 + (void)showErrorWithStatus:(NSString*)status;
++ (void)showErrorWithStatus:(NSString *)string duration:(float)duration;
 + (void)showErrorWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType __attribute__((deprecated("Use showErrorWithStatus: and setDefaultMaskType: instead.")));
 
 // shows a image + status, use 28x28 white PNGs
