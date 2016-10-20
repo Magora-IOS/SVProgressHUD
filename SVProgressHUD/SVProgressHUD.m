@@ -1398,6 +1398,15 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 - (void)setFadeOutAnimationDuration:(NSTimeInterval)duration  {
     if (!_isInitializing) _fadeOutAnimationDuration = duration;
 }
+#pragma mark - progressHUD with duration
+
++ (void)showSuccessWithStatus:(NSString *)string duration:(float)duration {
+    [[self sharedView] showImage:[self sharedView].successImage status:string duration:duration];
+}
+
++ (void)showErrorWithStatus:(NSString *)string duration:(float)duration {
+    [[self sharedView] showImage:[self sharedView].errorImage status:string duration:duration];
+}
 
 @end
 

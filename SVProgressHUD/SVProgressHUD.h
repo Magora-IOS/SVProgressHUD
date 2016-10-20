@@ -127,5 +127,9 @@ typedef NS_ENUM(NSUInteger, SVProgressHUDAnimationType) {
 
 + (NSTimeInterval)displayDurationForString:(NSString*)string;
 
+//SVProgressHUD with duration
++ (void)showSuccessWithStatus:(NSString *)string duration:(float)duration;
++ (void)showErrorWithStatus:(NSString *)string duration:(float)duration;
+
 @end
 
