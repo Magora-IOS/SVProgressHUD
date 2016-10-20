@@ -54,7 +54,7 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 - (void)updateMotionEffectForOrientation:(UIInterfaceOrientation)orientation;
 #endif
 - (void)updateMotionEffectForXMotionEffectType:(UIInterpolatingMotionEffectType)xMotionEffectType yMotionEffectType:(UIInterpolatingMotionEffectType)yMotionEffectType;
-- (void)updateViewHierarchy;
+- (void)updateViewHierachy;
 
 - (void)setStatus:(NSString*)status;
 - (void)setFadeOutTimer:(NSTimer*)timer;
@@ -72,7 +72,7 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 - (void)showStatus:(NSString*)status;
 
 - (void)dismiss;
-- (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion;
+- (void)dismissWithDelay:(NSTimeInterval)delay;
 
 - (UIView*)indefiniteAnimatedView;
 - (SVProgressAnimatedView*)ringView;
@@ -187,9 +187,6 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [self sharedView].fadeOutAnimationDuration = duration;
 }
 
-+ (void)setMaxSupportedWindowLevel:(UIWindowLevel)windowLevel {
-    [self sharedView].maxSupportedWindowLevel = windowLevel;
-}
 
 #pragma mark - Show Methods
 
@@ -208,8 +205,6 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [self sharedView];
     [self showProgress:SVProgressHUDUndefinedProgress status:status];
 }
-
-
 
 + (void)showWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
     SVProgressHUDMaskType existingMaskType = [self sharedView].defaultMaskType;
@@ -258,10 +253,6 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [self showImage:[self sharedView].successImage status:status];
 }
 
-+ (void)showSuccessWithStatus:(NSString *)string duration:(float)duration {
-    [[self sharedView] showImage:[self sharedView].successImage status:string duration:duration];
-}
-
 + (void)showSuccessWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
     SVProgressHUDMaskType existingMaskType = [self sharedView].defaultMaskType;
     [self setDefaultMaskType:maskType];
@@ -271,10 +262,6 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 
 + (void)showErrorWithStatus:(NSString*)status {
     [self showImage:[self sharedView].errorImage status:status];
-}
-
-+ (void)showErrorWithStatus:(NSString *)string duration:(float)duration {
-  [[self sharedView] showImage:[self sharedView].errorImage status:string duration:duration];
 }
 
 + (void)showErrorWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
@@ -309,19 +296,11 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 }
 
 + (void)dismiss {
-    [self dismissWithDelay:0.0 completion:nil];
-}
-
-+ (void)dismissWithCompletion:(SVProgressHUDDismissCompletion)completion {
-    [self dismissWithDelay:0.0 completion:completion];
+    [self dismissWithDelay:0.0];
 }
 
 + (void)dismissWithDelay:(NSTimeInterval)delay {
-    [self dismissWithDelay:delay completion:nil];
-}
-
-+ (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion {
-    [[self sharedView] dismissWithDelay:delay completion:completion];
+    [[self sharedView] dismissWithDelay:delay];
 }
 
 
@@ -389,8 +368,6 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 
         _fadeInAnimationDuration = SVProgressHUDDefaultAnimationDuration;
         _fadeOutAnimationDuration = SVProgressHUDDefaultAnimationDuration;
-        
-        _maxSupportedWindowLevel = UIWindowLevelNormal;
         
         // Accessibility support
         self.accessibilityIdentifier = @"SVProgressHUD";
@@ -548,6 +525,9 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 - (void)updateBlurBounds {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
     if(NSClassFromString(@"UIBlurEffect") && self.defaultStyle != SVProgressHUDStyleCustom) {
+        // Remove background color, else the effect would not work
+        self.hudView.backgroundColor = [UIColor clearColor];
+        
         // Remove any old instances of UIVisualEffectViews
         for (UIView *subview in self.hudView.subviews) {
             if([subview isKindOfClass:[UIVisualEffectView class]]) {
@@ -555,7 +535,7 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
             }
         }
         
-        if(self.backgroundColorForStyle != [UIColor clearColor]) {
+        if(self.backgroundColor != [UIColor clearColor]) {
             // Create blur effect
             UIBlurEffectStyle blurEffectStyle = self.defaultStyle == SVProgressHUDStyleDark ? UIBlurEffectStyleDark : UIBlurEffectStyleLight;
             UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:blurEffectStyle];
@@ -603,7 +583,7 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     }
 }
 
-- (void)updateViewHierarchy {
+- (void)updateViewHierachy {
     // Add the overlay (e.g. black, gradient) to the application window if necessary
     if(!self.overlayView.superview) {
 #if !defined(SV_APP_EXTENSIONS)
@@ -612,9 +592,9 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
         for (UIWindow *window in frontToBackWindows) {
             BOOL windowOnMainScreen = window.screen == UIScreen.mainScreen;
             BOOL windowIsVisible = !window.hidden && window.alpha > 0;
-            BOOL windowLevelSupported = (window.windowLevel >= UIWindowLevelNormal && window.windowLevel <= self.maxSupportedWindowLevel);
+            BOOL windowLevelNormal = window.windowLevel == UIWindowLevelNormal;
             
-            if(windowOnMainScreen && windowIsVisible && windowLevelSupported) {
+            if(windowOnMainScreen && windowIsVisible && windowLevelNormal) {
                 [window addSubview:self.overlayView];
                 break;
             }
@@ -856,8 +836,8 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [[NSOperationQueue mainQueue] addOperationWithBlock:^{
         __strong SVProgressHUD *strongSelf = weakSelf;
         if(strongSelf){
-            // Update / Check view hierarchy to ensure the HUD is visible
-            [strongSelf updateViewHierarchy];
+            // Update / Check view hierachy to ensure the HUD is visible
+            [strongSelf updateViewHierachy];
             
             // Reset imageView and fadeout timer if an image is currently displayed
             strongSelf.imageView.hidden = YES;
@@ -882,7 +862,7 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
                 [strongSelf.hudView addSubview:strongSelf.backgroundRingView];
                 strongSelf.ringView.strokeEnd = progress;
                 
-                // Update the activity count
+                // Updat the activity count
                 if(progress == 0) {
                     strongSelf.activityCount++;
                 }
@@ -911,8 +891,8 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [[NSOperationQueue mainQueue] addOperationWithBlock:^{
         __strong SVProgressHUD *strongSelf = weakSelf;
         if(strongSelf){
-            // Update / Check view hierarchy to ensure the HUD is visible
-            [strongSelf updateViewHierarchy];
+            // Update / Check view hierachy to ensure the HUD is visible
+            [strongSelf updateViewHierachy];
             
             // Reset progress and cancel any running animation
             strongSelf.progress = SVProgressHUDUndefinedProgress;
@@ -952,7 +932,7 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     [self updateHUDFrame];
     [self positionHUD:nil];
     
-    // Update accessibility as well as user interaction
+    // Update accesibilty as well as user interaction
     if(self.defaultMaskType != SVProgressHUDMaskTypeNone) {
         self.overlayView.userInteractionEnabled = YES;
         self.accessibilityLabel = status;
@@ -996,21 +976,16 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
         __block void (^completionBlock)(void) = ^{
             __strong SVProgressHUD *strongSelf = weakSelf;
             if(strongSelf) {
-                // Check if we really achieved to show the HUD (<=> alpha values are applied)
-                // and the change of these values has not been cancelled in between
-                // e.g. due to a dismissmal
-                if(strongSelf.alpha == 1.0f && strongSelf.hudView.alpha == 1.0f){
-                    // Register observer <=> we now have to handle orientation changes etc.
-                    [strongSelf registerNotifications];
-                    
-                    // Post notification to inform user
-                    [[NSNotificationCenter defaultCenter] postNotificationName:SVProgressHUDDidAppearNotification
-                                                                        object:strongSelf
-                                                                      userInfo:[strongSelf notificationUserInfo]];
-                }
+                /// Register observer <=> we now have to handle orientation changes etc.
+                [strongSelf registerNotifications];
+                
+                // Post notification to inform user
+                [[NSNotificationCenter defaultCenter] postNotificationName:SVProgressHUDDidAppearNotification
+                                                                    object:strongSelf
+                                                                  userInfo:[strongSelf notificationUserInfo]];
             }
             
-            // Update accessibility
+            // Update accesibilty
             UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, nil);
             UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, status);
         };
@@ -1030,41 +1005,39 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
             completionBlock();
         }
         
-        // Inform iOS to redraw the view hierarchy
+        // Inform iOS to redraw the view hierachy
         [self setNeedsDisplay];
     }
 }
 
 - (void)dismiss {
-    [self dismissWithDelay:0.0 completion:nil];
+    [self dismissWithDelay:0];
 }
 
-- (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion {
+- (void)dismissWithDelay:(NSTimeInterval)delay {
     __weak SVProgressHUD *weakSelf = self;
     [[NSOperationQueue mainQueue] addOperationWithBlock:^{
         __strong SVProgressHUD *strongSelf = weakSelf;
         if(strongSelf){
-            // Post notification to inform user
-            [[NSNotificationCenter defaultCenter] postNotificationName:SVProgressHUDWillDisappearNotification
-                                                                object:nil
-                                                              userInfo:[strongSelf notificationUserInfo]];
-            
-            // Reset activity count
-            strongSelf.activityCount = 0;
-            
-            // Define blocks
-            __block void (^animationsBlock)(void) = ^{
-                strongSelf.hudView.transform = CGAffineTransformScale(strongSelf.hudView.transform, 1/1.3f, 1/1.3f);
-                strongSelf.alpha = 0.0f;
-                strongSelf.hudView.alpha = 0.0f;
-            };
-            
-            __block void (^completionBlock)(void) = ^{
-                // Check if we really achieved to dismiss the HUD (<=> alpha values are applied)
-                // and the change of these values has not been cancelled in between
-                // e.g. due to a new show
-                if(strongSelf.alpha == 0.0f && strongSelf.hudView.alpha == 0.0f){
-                    // Clean up view hierarchy (overlays)
+            // Dismiss if visible (depending on alpha)
+            if(strongSelf.alpha != 0.0f || strongSelf.hudView.alpha != 0.0f){
+                // Post notification to inform user
+                [[NSNotificationCenter defaultCenter] postNotificationName:SVProgressHUDWillDisappearNotification
+                                                                    object:nil
+                                                                  userInfo:[strongSelf notificationUserInfo]];
+                
+                // Reset activitiy count
+                strongSelf.activityCount = 0;
+                
+                // Define blocks
+                __block void (^animationsBlock)(void) = ^{
+                    strongSelf.hudView.transform = CGAffineTransformScale(strongSelf.hudView.transform, 0.8f, 0.8f);
+                    strongSelf.alpha = 0.0f;
+                    strongSelf.hudView.alpha = 0.0f;
+                };
+                
+                __block void (^completionBlock)(void) = ^{
+                    // Clean up view hierachy (overlays)
                     [strongSelf.overlayView removeFromSuperview];
                     [strongSelf.hudView removeFromSuperview];
                     [strongSelf removeFromSuperview];
@@ -1089,36 +1062,28 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
                         [rootController setNeedsStatusBarAppearanceUpdate];
                     }
 #endif
-                    // Update accessibility
+                    // Update accesibilty
                     UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, nil);
-                    
-                    // Run an (optional) completionHandler
-                    if (completion) {
-                        completion();
-                    }
+                };
+                
+                if (strongSelf.fadeOutAnimationDuration > 0) {
+                    // Animate appearance
+                    [UIView animateWithDuration:strongSelf.fadeOutAnimationDuration
+                                          delay:delay
+                                        options:(UIViewAnimationOptions) (UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState)
+                                     animations:^{
+                                         animationsBlock();
+                                     } completion:^(BOOL finished) {
+                                         completionBlock();
+                                     }];
+                } else {
+                    animationsBlock();
+                    completionBlock();
                 }
-            };
-            
-            if (strongSelf.fadeOutAnimationDuration > 0) {
-                // Animate appearance
-                [UIView animateWithDuration:strongSelf.fadeOutAnimationDuration
-                                      delay:delay
-                                    options:(UIViewAnimationOptions) (UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState)
-                                 animations:^{
-                                     animationsBlock();
-                                 } completion:^(BOOL finished) {
-                                     completionBlock();
-                                 }];
-            } else {
-                animationsBlock();
-                completionBlock();
+                
+                // Inform iOS to redraw the view hierachy
+                [strongSelf setNeedsDisplay];
             }
-            
-            // Inform iOS to redraw the view hierarchy
-            [strongSelf setNeedsDisplay];
-        } else if (completion) {
-            // Run an (optional) completionHandler
-            completion();
         }
     }];
 }
@@ -1269,19 +1234,16 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 
 - (UIControl*)overlayView {
     if(!_overlayView) {
-        _overlayView = [[UIControl alloc] init];
+#if !defined(SV_APP_EXTENSIONS)
+        CGRect windowBounds = [[[UIApplication sharedApplication] delegate] window].bounds;
+        _overlayView = [[UIControl alloc] initWithFrame:windowBounds];
+#else
+        _overlayView = [[UIControl alloc] initWithFrame:[UIScreen mainScreen].bounds];
+#endif
         _overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         _overlayView.backgroundColor = [UIColor clearColor];
         [_overlayView addTarget:self action:@selector(overlayViewDidReceiveTouchEvent:forEvent:) forControlEvents:UIControlEventTouchDown];
     }
-    // Update frame
-#if !defined(SV_APP_EXTENSIONS)
-    CGRect windowBounds = [[[UIApplication sharedApplication] delegate] window].bounds;
-    _overlayView.frame = windowBounds;
-#else
-    _overlayView.frame = [UIScreen mainScreen].bounds;
-#endif
-    
     return _overlayView;
 }
 
@@ -1294,12 +1256,8 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
     
     // Update styling
     _hudView.layer.cornerRadius = self.cornerRadius;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-    // On iOS 8, the background color is set via a UIVisualEffectsView, see updateBlurBounds:
-    _hudView.backgroundColor = self.defaultStyle == SVProgressHUDStyleCustom ? self.backgroundColor : [UIColor clearColor];
-#else
     _hudView.backgroundColor = self.backgroundColorForStyle;
-#endif
+    
     return _hudView;
 }
 
@@ -1439,10 +1397,6 @@ static const CGFloat SVProgressHUDDefaultAnimationDuration = 0.15;
 
 - (void)setFadeOutAnimationDuration:(NSTimeInterval)duration  {
     if (!_isInitializing) _fadeOutAnimationDuration = duration;
-}
-
-- (void)setMaxSupportedWindowLevel:(UIWindowLevel)maxSupportedWindowLevel {
-    if (!_isInitializing) _maxSupportedWindowLevel = maxSupportedWindowLevel;
 }
 
 @end
